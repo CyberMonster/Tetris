@@ -19,6 +19,115 @@ namespace Tetris
             this.x = x;
             this.y = y;
         }
+        public void Swap(int a = 0)
+        {
+            this.x += this.y;
+            this.y = this.x - this.y;
+            this.x -= this.y;
+        }
+        public Element Swap()
+        {
+            this.Swap(0);
+            return this;
+        }
+    }
+    public class Figure
+    {
+        public byte Size;
+        public byte Type;
+        public List<Element> Dots;
+
+        public Figure(byte type)
+        {
+            this.Type = type;
+            CreateFigure();
+        }
+
+        public void CreateFigure(byte type)
+        {
+            this.Type = type;
+            this.CreateFigure();
+        }
+        public void CreateFigure()
+        {
+            this.Dots = new List<Element>();
+            switch (this.Type)
+            {
+                case 1:
+                    this.Dots.Add(new Element(0, 0));
+                    this.Dots.Add(new Element(0, 1));
+                    this.Dots.Add(new Element(1, 1));
+                    this.Dots.Add(new Element(2, 1));
+                    this.Size = 3;
+                    break;
+                case 2:
+                    this.Dots.Add(new Element(0, 0));
+                    this.Dots.Add(new Element(0, 1));
+                    this.Dots.Add(new Element(1, 0));
+                    this.Dots.Add(new Element(1, 1));
+                    this.Size = 2;
+                    break;
+                case 3:
+                    this.Dots.Add(new Element(0, 1));
+                    this.Dots.Add(new Element(1, 0));
+                    this.Dots.Add(new Element(1, 1));
+                    this.Dots.Add(new Element(2, 1));
+                    this.Size = 3;
+                    break;
+                case 4:
+                    this.Dots.Add(new Element(0, 0));
+                    this.Dots.Add(new Element(0, 1));
+                    this.Dots.Add(new Element(1, 1));
+                    this.Dots.Add(new Element(1, 2));
+                    this.Size = 3;
+                    break;
+                case 5:
+                    this.Dots.Add(new Element(0, 0));
+                    this.Dots.Add(new Element(1, 0));
+                    this.Dots.Add(new Element(2, 0));
+                    this.Dots.Add(new Element(3, 0));
+                    this.Size = 4;
+                    break;
+                default:
+                    this.Dots.Add(new Element(0, 0));
+                    this.Size = 1;
+                    break;
+            }
+        }
+
+        public void Rotate()
+        {
+            bool[,] RotateMass = new bool[this.Size, this.Size];
+            bool[,] ResultMass = new bool[this.Size, this.Size];
+            for (int i = 0; i < this.Size; ++i)
+            {
+                for (int j = 0; j < this.Size; ++j)
+                {
+                    RotateMass[i, j] = this.Dots.Where(z => z.x == j && z.y == i).Count() != 0;
+                }
+            }
+
+            for (int i = 0; i < this.Size; ++i)
+            {
+                for (int j = 0; j < this.Size; ++j)
+                {
+                    ResultMass[i, this.Size - j - 1] = RotateMass[j, i];
+                }
+            }
+
+            this.Dots.Clear();
+            for (int i = 0; i < this.Size; ++i)
+            {
+                for (int j = 0; j < this.Size; ++j)
+                {
+                    if (ResultMass[i, j])
+                    {
+                        this.Dots.Add(new Element(j, i));
+                    }
+                }
+            }
+            //this.Dots = this.Dots.Select(z => z.Rotate()).ToList();
+        }
     }
     public class GameField
     {
@@ -65,16 +174,19 @@ namespace Tetris
             {
                 try
                 {
-                    if ((value < this.Rules.FieldHeight) && this.Elements.Where(z => (z.x == this.DotOffsetFromLeft) && (z.y == (this.DotOffsetFromTop + 1))).Count() == 0)
+                    if ((this.CreatedFigure.Dots.Select(z => (z.y + value) < this.Rules.FieldHeight).Where(z => !z).Count() == 0) && this.Elements.Where(z => (z.x == this.DotOffsetFromLeft) && (z.y == (this.DotOffsetFromTop + 1))).Count() == 0)
                     {
                         this.DotOffsetFromTop_ = value;
                     }
                     else
                     {
-                        if (this.Elements.Where(z => z.x == this.DotOffsetFromLeft && z.y == this.DotOffsetFromTop).Count() == 0)
+                        foreach (var Dot in this.CreatedFigure.Dots)
                         {
-                            this.Elements.Add(new Element(this.DotOffsetFromLeft, this.DotOffsetFromTop));
-                            DeleteCompletedLines();
+                            if (this.Elements.Where(z => z.x == Dot.x + this.DotOffsetFromLeft && z.y == Dot.y + this.DotOffsetFromTop).Count() == 0)
+                            {
+                                this.Elements.Add(new Element(Dot.x + this.DotOffsetFromLeft, Dot.y + this.DotOffsetFromTop));
+                                DeleteCompletedLines();
+                            }
                         }
                         this.NewElementCreate();
                     }
@@ -102,9 +214,12 @@ namespace Tetris
         private string TopPartOfField;
         private string BottomPartOfField;
 
+        public Figure CreatedFigure;
+
         public GameRules Rules;
-        public GameField(int Top, int Left, string Borders, GameRules Rules) // /-\||\-/
+        public GameField(int Top, int Left, string Borders, GameRules Rules) // /-\||\-/ *
         {
+            this.CreatedFigure = new Figure(1);
             this.CanPaint = true;
             this.Elements = new List<Element>();
             this.TopOffset = Top;
@@ -186,13 +301,20 @@ namespace Tetris
                 GameFieldPart = "" + this.FieldBorders[3];
                 for (int x = 0; x < this.Rules.FieldWidth; ++x)
                 {
-                    if ((DotOffsetFromTop == y && DotOffsetFromLeft == x) || this.Elements.Where(z => z.x == x && z.y == y).Count() != 0)
+                    if (CreatedFigure.Dots.Where(z => z.x + this.DotOffsetFromLeft == x && z.y + this.DotOffsetFromTop == y).Count() != 0)
                     {
                         GameFieldPart += this.FieldBorders[8];
                     }
                     else
                     {
-                        GameFieldPart += this.FieldBorders[9];
+                        if (this.Elements.Where(z => z.x == x && z.y == y).Count() != 0)
+                        {
+                            GameFieldPart += this.FieldBorders[8];
+                        }
+                        else
+                        {
+                            GameFieldPart += this.FieldBorders[9];
+                        }
                     }
                 }
                 GameFieldPart += this.FieldBorders[4];
@@ -234,6 +356,7 @@ namespace Tetris
             ConsoleKeyInfo ConsoleKey = Console.ReadKey();
 
             Console.Clear();
+            byte o = 1;
 
             var a = new GameField(10, 10, @"┌─┐││└─┘▒░", new GameRules(400, 10, 10));
 
@@ -246,7 +369,8 @@ namespace Tetris
                     {
                         case System.ConsoleKey.R:
                             Console.Clear();
-                            //a.OutGameField();
+                            a.CreatedFigure.CreateFigure(o);
+                            ++o;
                             break;
                         case System.ConsoleKey.A:
                         case System.ConsoleKey.LeftArrow:
@@ -256,10 +380,19 @@ namespace Tetris
                         case System.ConsoleKey.RightArrow:
                             ++a.DotOffsetFromLeft;
                             break;
+                        case System.ConsoleKey.W:
+                        case System.ConsoleKey.UpArrow:
+                            a.CreatedFigure.Rotate();
+                            break;
                         case System.ConsoleKey.H:
                             a.Rules.GlobalTimer.Stop();
                             HelpDialog();
                             a.Rules.GlobalTimer.Start();
+                            break;
+                        case System.ConsoleKey.N:
+                            a.Rules.GlobalTimer.Stop();
+                            a = NewGame();
+                            Console.Clear();
                             break;
                         case System.ConsoleKey.P:
                             a.Rules.GlobalTimer.Stop();
@@ -278,6 +411,28 @@ namespace Tetris
                     }
                 }
             }
+        }
+        static GameField NewGame()
+        {
+            Console.Clear();
+
+            Console.WriteLine("Input offset: \ny: ");
+            int xo;
+            int yo;
+            int.TryParse(Console.ReadLine(), out xo);
+            Console.WriteLine("x: ");
+            int.TryParse(Console.ReadLine(), out yo);
+
+            Console.WriteLine("Input TickTime(ms), width, height");
+            int tt;
+            int w;
+            int h;
+            int.TryParse(Console.ReadLine(), out tt);
+            int.TryParse(Console.ReadLine(), out w);
+            int.TryParse(Console.ReadLine(), out h);
+
+            Console.WriteLine("Input draw pars");
+            return new GameField(xo, yo, Console.ReadLine(), new GameRules(tt, w, h));
         }
         static void HelpDialog()
         {

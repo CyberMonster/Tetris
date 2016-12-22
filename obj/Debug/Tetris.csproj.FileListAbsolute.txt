@@ -4,3 +4,9 @@ C:\Users\Oleg\Documents\Visual Studio 2015\Projects\Tetris\bin\Debug\Tetris.pdb
 C:\Users\Oleg\Documents\Visual Studio 2015\Projects\Tetris\obj\Debug\Tetris.csprojResolveAssemblyReference.cache
 C:\Users\Oleg\Documents\Visual Studio 2015\Projects\Tetris\obj\Debug\Tetris.exe
 C:\Users\Oleg\Documents\Visual Studio 2015\Projects\Tetris\obj\Debug\Tetris.pdb
+C:\Users\Oleg\Documents\GitHub\Tetris\bin\Debug\Tetris.exe.config
+C:\Users\Oleg\Documents\GitHub\Tetris\obj\Debug\Tetris.exe
+C:\Users\Oleg\Documents\GitHub\Tetris\obj\Debug\Tetris.pdb
+C:\Users\Oleg\Documents\GitHub\Tetris\bin\Debug\Tetris.exe
+C:\Users\Oleg\Documents\GitHub\Tetris\bin\Debug\Tetris.pdb
+C:\Users\Oleg\Documents\GitHub\Tetris\obj\Debug\Tetris.csprojResolveAssemblyReference.cache
