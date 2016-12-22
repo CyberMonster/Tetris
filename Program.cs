@@ -88,6 +88,20 @@ namespace Tetris
                     this.Dots.Add(new Element(3, 0));
                     this.Size = 4;
                     break;
+                case 6:
+                    this.Dots.Add(new Element(2, 0));
+                    this.Dots.Add(new Element(0, 1));
+                    this.Dots.Add(new Element(1, 1));
+                    this.Dots.Add(new Element(2, 1));
+                    this.Size = 3;
+                    break;
+                case 7:
+                    this.Dots.Add(new Element(1, 0));
+                    this.Dots.Add(new Element(0, 1));
+                    this.Dots.Add(new Element(1, 1));
+                    this.Dots.Add(new Element(0, 2));
+                    this.Size = 3;
+                    break;
                 default:
                     this.Dots.Add(new Element(0, 0));
                     this.Size = 1;
@@ -134,6 +148,8 @@ namespace Tetris
         public int TopOffset;
         public int LeftOffset;
         public bool CanPaint;
+
+        public int Score;
 
         public int DotOffsetFromLeft_;
         public int DotOffsetFromLeft
@@ -222,6 +238,7 @@ namespace Tetris
                     var BufferElements = this.Elements.Where(z => z.y > i).ToList();
                     this.Elements = this.Elements.Where(z => z.y < i).Select(z => new Element(z.x, z.y + 1)).ToList();
                     this.Elements.AddRange(BufferElements);
+                    Score += this.Rules.FieldWidth;
                 }
             }
         }
@@ -246,7 +263,7 @@ namespace Tetris
             System.Random rnd = new Random();
             this.DotOffsetFromLeft_ = (this.Rules.FieldWidth / 2);
             this.DotOffsetFromTop_ = 0;
-            this.CreatedFigure.CreateFigure((byte)rnd.Next(1,7));
+            this.CreatedFigure.CreateFigure((byte)rnd.Next(1, 9));
         }
         public bool CheckElements()
         {
@@ -309,7 +326,8 @@ namespace Tetris
             //Console.CursorLeft = this.LeftOffset;
 
             Console.WriteLine(LeftSpace + this.BottomPartOfField);
-            Console.WriteLine("x - {0}   y - {1}   e - {2}", DotOffsetFromLeft, DotOffsetFromTop, this.Elements.Count());
+            //Console.WriteLine("x - {0}   y - {1}   Score - {2}   e - {3}", DotOffsetFromLeft, DotOffsetFromTop, this.Score, this.Elements.Count());
+            Console.WriteLine("Score - {0}", this.Score);
 
             this.CanPaint = true;
         }
@@ -382,6 +400,12 @@ namespace Tetris
                             a.Rules.GlobalTimer.Stop();
                             StopDialog();
                             a.Rules.GlobalTimer.Start();
+                            break;
+                        case System.ConsoleKey.F1:
+                            a.Score += a.Rules.FieldWidth;
+                            break;
+                        case System.ConsoleKey.C:
+                            a.Elements = new List<Element>();
                             break;
                         default:
                             ++a.DotOffsetFromTop;
