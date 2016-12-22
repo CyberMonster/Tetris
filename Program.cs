@@ -144,21 +144,13 @@ namespace Tetris
             }
             set
             {
-                if ((value < this.Rules.FieldWidth && (value) >= 0) && (this.Elements.Where(z => z.x == value && z.y == this.DotOffsetFromTop).Count() == 0))
+                if (this.CreatedFigure.Dots.Where(z => this.Elements.Where(e => (z.x + value) == e.x && (z.y + this.DotOffsetFromTop) == e.y).Count() > 0 ).Count() > 0 || this.CreatedFigure.Dots.Where(z => (z.x + value) < 0 || (z.x + value) >= this.Rules.FieldWidth).Count() > 0)
                 {
-                    this.DotOffsetFromLeft_ = value;
+                    ;
                 }
                 else
                 {
-                    if (value < this.Rules.FieldWidth && (value) >= 0)
-                    {
-                        if (this.Elements.Where(z => z.y == this.DotOffsetFromTop && z.x == this.DotOffsetFromLeft).Count() == 0)
-                        {
-                            this.Elements.Add(new Element(this.DotOffsetFromLeft, this.DotOffsetFromTop));
-                        }
-                        DeleteCompletedLines();
-                        this.NewElementCreate();
-                    }
+                    this.DotOffsetFromLeft_ = value;
                 }
             }
         }
@@ -172,28 +164,18 @@ namespace Tetris
             }
             set
             {
-                try
+                if (this.CreatedFigure.Dots.Where(z => z.y + value > this.Rules.FieldHeight - 1).Count() > 0 || this.CreatedFigure.Dots.Where(z => this.Elements.Where(e => e.x == (z.x + this.DotOffsetFromLeft) && e.y == (z.y + value)).Count() > 0).Count() > 0)
                 {
-                    if ((this.CreatedFigure.Dots.Select(z => (z.y + value) < this.Rules.FieldHeight).Where(z => !z).Count() == 0) && this.Elements.Where(z => (z.x == this.DotOffsetFromLeft) && (z.y == (this.DotOffsetFromTop + 1))).Count() == 0)
+                    foreach(var Dot in this.CreatedFigure.Dots)
                     {
-                        this.DotOffsetFromTop_ = value;
+                        this.Elements.Add(new Element(Dot.x + this.DotOffsetFromLeft, Dot.y + this.DotOffsetFromTop));
+                        DeleteCompletedLines();
                     }
-                    else
-                    {
-                        foreach (var Dot in this.CreatedFigure.Dots)
-                        {
-                            if (this.Elements.Where(z => z.x == Dot.x + this.DotOffsetFromLeft && z.y == Dot.y + this.DotOffsetFromTop).Count() == 0)
-                            {
-                                this.Elements.Add(new Element(Dot.x + this.DotOffsetFromLeft, Dot.y + this.DotOffsetFromTop));
-                                DeleteCompletedLines();
-                            }
-                        }
-                        this.NewElementCreate();
-                    }
+                    this.NewElementCreate();
                 }
-                catch
+                else
                 {
-                    ;
+                    this.DotOffsetFromTop_ = value;
                 }
             }
         }
@@ -261,8 +243,10 @@ namespace Tetris
         }
         public void NewElementCreate()
         {
+            System.Random rnd = new Random();
             this.DotOffsetFromLeft_ = (this.Rules.FieldWidth / 2);
             this.DotOffsetFromTop_ = 0;
+            this.CreatedFigure.CreateFigure((byte)rnd.Next(1,7));
         }
         public bool CheckElements()
         {
@@ -358,7 +342,7 @@ namespace Tetris
             Console.Clear();
             byte o = 1;
 
-            var a = new GameField(10, 10, @"┌─┐││└─┘▒░", new GameRules(400, 10, 10));
+            var a = new GameField(20, 50, @"┌─┐││└─┘▒░", new GameRules(400, 10, 15));
 
             for (;;)
             {
@@ -369,7 +353,7 @@ namespace Tetris
                     {
                         case System.ConsoleKey.R:
                             Console.Clear();
-                            a.CreatedFigure.CreateFigure(o);
+                            //a.CreatedFigure.CreateFigure(o);
                             ++o;
                             break;
                         case System.ConsoleKey.A:
