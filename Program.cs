@@ -109,10 +109,11 @@ namespace Tetris
             }
         }
 
-        public void Rotate()
+        public void Rotate(GameRules Rules, List<Element> Elements, int xOffset, int yOffset)
         {
             bool[,] RotateMass = new bool[this.Size, this.Size];
             bool[,] ResultMass = new bool[this.Size, this.Size];
+            List<Element> ResultDots = new List<Element>();
             for (int i = 0; i < this.Size; ++i)
             {
                 for (int j = 0; j < this.Size; ++j)
@@ -129,16 +130,23 @@ namespace Tetris
                 }
             }
 
-            this.Dots.Clear();
+            
+
+            //this.Dots.Clear();
             for (int i = 0; i < this.Size; ++i)
             {
                 for (int j = 0; j < this.Size; ++j)
                 {
                     if (ResultMass[i, j])
                     {
-                        this.Dots.Add(new Element(j, i));
+                        ResultDots.Add(new Element(j, i));
                     }
                 }
+            }
+
+            if ((ResultDots.Where(z => (z.x + xOffset) < 0 || (z.x + xOffset) >= Rules.FieldWidth).Count() == 0) && (ResultDots.Where(z => Elements.Where(o => (o.x == (z.x + xOffset)) && (o.y == (z.y + yOffset))).Count() > 0).Count() == 0))
+            {
+                this.Dots = ResultDots;
             }
             //this.Dots = this.Dots.Select(z => z.Rotate()).ToList();
         }
@@ -217,6 +225,7 @@ namespace Tetris
         public GameRules Rules;
         public GameField(int Top, int Left, string Borders, GameRules Rules) // /-\||\-/ *
         {
+            this.Score = 0;
             this.CreatedFigure = new Figure(1);
             this.CanPaint = true;
             this.Elements = new List<Element>();
@@ -238,7 +247,7 @@ namespace Tetris
                     var BufferElements = this.Elements.Where(z => z.y > i).ToList();
                     this.Elements = this.Elements.Where(z => z.y < i).Select(z => new Element(z.x, z.y + 1)).ToList();
                     this.Elements.AddRange(BufferElements);
-                    Score += this.Rules.FieldWidth;
+                    this.Score += this.Rules.FieldWidth;
                 }
             }
         }
@@ -264,6 +273,44 @@ namespace Tetris
             this.DotOffsetFromLeft_ = (this.Rules.FieldWidth / 2);
             this.DotOffsetFromTop_ = 0;
             this.CreatedFigure.CreateFigure((byte)rnd.Next(1, 9));
+            if (this.CreatedFigure.Dots.Where(z => this.Elements.Where(o => o.x == (z.x + this.DotOffsetFromLeft) && o.y == (z.y + this.DotOffsetFromTop)).Count() > 0).Count() > 0)
+            {
+                this.GameLosed();
+                System.Threading.Thread RKT = new System.Threading.Thread(delegate()
+                {
+                    this.ThreadLooper(System.Threading.Thread.CurrentThread);
+                });
+                RKT.Start();
+                System.Threading.Thread.CurrentThread.Suspend();
+            }
+        }
+        public void ThreadLooper(object MainStream)
+        {
+            ConsoleKeyInfo PressedKey;
+            for (;;)
+            {
+                PressedKey = Console.ReadKey();
+                if (PressedKey.Key == System.ConsoleKey.C)
+                {
+                    try
+                    {
+                        ((System.Threading.Thread)MainStream).Resume();
+                        break;
+                    }
+                    catch
+                    {
+                        ((System.Threading.Thread)MainStream).Suspend();
+                    }
+                }
+            }
+            System.Threading.Thread.CurrentThread.Abort();
+        }
+        public void GameLosed()
+        {
+            this.Rules.GlobalTimer.Enabled = false;
+            this.CreatedFigure.Dots = new List<Element>();
+            Console.Clear();
+            Console.WriteLine("You Lose!\nYou score = {0}\n\nStart new game\non 'c'", this.Score);
         }
         public bool CheckElements()
         {
@@ -283,51 +330,55 @@ namespace Tetris
         {
             this.CanPaint = false;
 
-            Console.CursorTop = this.TopOffset;
-            //Console.SetCursorPosition(this.LeftOffset, this.TopOffset);
-
-            string LeftSpace;
-
-            LeftSpace = "";
-            for (int Offs = 0; Offs < this.LeftOffset; ++Offs)
+            try
             {
-                LeftSpace += ' ';
-            }
-            Console.WriteLine(LeftSpace + this.TopPartOfField);
+                Console.CursorTop = this.TopOffset;
 
-            string GameFieldPart;
+                string LeftSpace;
 
-            for (int y = 0; y < this.Rules.FieldHeight; ++y)
-            {
-                GameFieldPart = "" + this.FieldBorders[3];
-                for (int x = 0; x < this.Rules.FieldWidth; ++x)
+                LeftSpace = "";
+                for (int Offs = 0; Offs < this.LeftOffset; ++Offs)
                 {
-                    if (CreatedFigure.Dots.Where(z => z.x + this.DotOffsetFromLeft == x && z.y + this.DotOffsetFromTop == y).Count() != 0)
+                    LeftSpace += ' ';
+                }
+                Console.WriteLine(LeftSpace + this.TopPartOfField);
+
+                string GameFieldPart;
+
+                for (int y = 0; y < this.Rules.FieldHeight; ++y)
+                {
+                    GameFieldPart = "" + this.FieldBorders[3];
+                    for (int x = 0; x < this.Rules.FieldWidth; ++x)
                     {
-                        GameFieldPart += this.FieldBorders[8];
-                    }
-                    else
-                    {
-                        if (this.Elements.Where(z => z.x == x && z.y == y).Count() != 0)
+                        if (CreatedFigure.Dots.Where(z => z.x + this.DotOffsetFromLeft == x && z.y + this.DotOffsetFromTop == y).Count() != 0)
                         {
                             GameFieldPart += this.FieldBorders[8];
                         }
                         else
                         {
-                            GameFieldPart += this.FieldBorders[9];
+                            if (this.Elements.Where(z => z.x == x && z.y == y).Count() != 0)
+                            {
+                                GameFieldPart += this.FieldBorders[8];
+                            }
+                            else
+                            {
+                                GameFieldPart += this.FieldBorders[9];
+                            }
                         }
                     }
+                    GameFieldPart += this.FieldBorders[4];
+
+                    Console.WriteLine(LeftSpace + GameFieldPart);
                 }
-                GameFieldPart += this.FieldBorders[4];
 
-                Console.WriteLine(LeftSpace + GameFieldPart);
+                Console.WriteLine(LeftSpace + this.BottomPartOfField);
+
+                Console.WriteLine("Score - {0}", this.Score);
             }
-
-            //Console.CursorLeft = this.LeftOffset;
-
-            Console.WriteLine(LeftSpace + this.BottomPartOfField);
-            //Console.WriteLine("x - {0}   y - {1}   Score - {2}   e - {3}", DotOffsetFromLeft, DotOffsetFromTop, this.Score, this.Elements.Count());
-            Console.WriteLine("Score - {0}", this.Score);
+            catch
+            {
+                ;
+            }
 
             this.CanPaint = true;
         }
@@ -355,10 +406,9 @@ namespace Tetris
         static void Main()
         {
             Console.WriteLine("Press any key for start");
-            ConsoleKeyInfo ConsoleKey = Console.ReadKey();
+            ConsoleKeyInfo ConsoleKey = Console.ReadKey(true);
 
             Console.Clear();
-            byte o = 1;
 
             var a = new GameField(20, 50, @"┌─┐││└─┘▒░", new GameRules(400, 10, 15));
 
@@ -367,12 +417,11 @@ namespace Tetris
                 if (a.CanPaint)
                 {
                     ConsoleKey = Console.ReadKey(true);
+
                     switch (ConsoleKey.Key)
                     {
                         case System.ConsoleKey.R:
                             Console.Clear();
-                            //a.CreatedFigure.CreateFigure(o);
-                            ++o;
                             break;
                         case System.ConsoleKey.A:
                         case System.ConsoleKey.LeftArrow:
@@ -384,7 +433,7 @@ namespace Tetris
                             break;
                         case System.ConsoleKey.W:
                         case System.ConsoleKey.UpArrow:
-                            a.CreatedFigure.Rotate();
+                            a.CreatedFigure.Rotate(a.Rules, a.Elements, a.DotOffsetFromLeft, a.DotOffsetFromTop);
                             break;
                         case System.ConsoleKey.H:
                             a.Rules.GlobalTimer.Stop();
@@ -401,11 +450,12 @@ namespace Tetris
                             StopDialog();
                             a.Rules.GlobalTimer.Start();
                             break;
-                        case System.ConsoleKey.F1:
-                            a.Score += a.Rules.FieldWidth;
-                            break;
                         case System.ConsoleKey.C:
                             a.Elements = new List<Element>();
+                            a.Rules.GlobalTimer.Enabled = true;
+                            a.Score = 0;
+                            a.NewElementCreate();
+                            a.DotOffsetFromTop = 0;
                             break;
                         default:
                             ++a.DotOffsetFromTop;
